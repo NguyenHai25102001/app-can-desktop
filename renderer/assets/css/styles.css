@@ -1,0 +1,15 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    /*user-select: none;*/
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, #030644 0%, #1A558D 34.2%, #377EE8 70.44%, #11AAB4 98%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
