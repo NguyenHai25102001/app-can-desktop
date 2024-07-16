@@ -1,73 +1,4 @@
-import path from 'path'
-import { app, BrowserWindow, ipcMain } from 'electron'
-import serve from 'electron-serve'
-import { createWindow } from './helpers'
-const { SerialPort } = require('serialport');
-const fs = require('fs'); 
-import { print } from "pdf-to-printer";
-const PDFDocument = require('pdfkit');
-const electronPDF = require('electron-pdf');
-const isProd = process.env.NODE_ENV === 'production'
-
-if (isProd) {
-  serve({ directory: 'app' })
-} else {
-  app.setPath('userData', `${app.getPath('userData')} (development)`)
-}
-let mainWindow;
-;(async () => {
-  await app.whenReady()
-
-  if (!mainWindow) {
-    mainWindow = createWindow('main', {
-      width: 1200,
-      height: 700,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        icon: path.join(__dirname, 'icon.ico')
-      },
-
-    })
-
-    if (isProd) {
-      await mainWindow.loadURL('app://./login')
-    } else {
-      const port = process.argv[2]
-      await mainWindow.loadURL(`http://localhost:${port}/login`)
-      mainWindow.webContents.openDevTools()
-    }
-
-    // SerialPort configuration
-    const serialPort = new SerialPort({
-      path: 'COM1', // Replace with the correct port
-      baudRate: 9600
-    });
-
-    serialPort.on('data', (data) => {
-      mainWindow.webContents.send('serial-data', data.toString().match(/\d+/g).join(""));
-      // console.log('Data:', data.toString().match(/\d+/g).join(""));
-    });
-  } else {
-    mainWindow.focus();
-  }
-})()
-
-
-app.on('window-all-closed', () => {
-  mainWindow = null;
-  app.quit()
-})
-
-ipcMain.on('message', async (event, arg) => {
-  event.reply('message', `${arg} World!`)
-})
-ipcMain.on('print-details', async (event, details) => {
-  console.log('Printing details', details);
-
-  try {
-    // Tạo nội dung HTML từ dữ liệu details
-    const htmlContent = `
-      <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -129,7 +60,7 @@ ipcMain.on('print-details', async (event, details) => {
             <div class="" style="display: flex;
             font-size: 14px;">
                 <div class="" style="margin-right: 1rem;">Số phiếu: </div>
-                <div class="">${details.code_scale}</div>
+                <div class="">222222222</div>
             </div>
         </div>
     </div>
@@ -144,38 +75,38 @@ ipcMain.on('print-details', async (event, details) => {
 
                 <div style="display: flex; align-items: center;margin: 0;">
                     <div class="" style="width: 150px;">Khách hàng</div>
-                    <div>:${details.customerName}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; align-items: center; margin: 0;">
                     <div class="" style="width: 150px;">Số xe</div>
-                    <div>: ${details.licensePlates}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; align-items: center;margin: 0;">
                     <div class="" style="width: 150px;">Loại hàng</div>
-                    <div>:  ${details.productName}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; margin: 0;">
                     <div class="" style="width: 150px;">Ghi chú</div>
-                    <div>: ${details.explain}</div>
+                    <div>: 00123</div>
                 </div>
 
             </div>
             <div class="">
                 <div style="display: flex; margin: 0;">
                     <div class="" style="width: 150px;">Ngày cân</div>
-                    <div>: ${details.explain}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; align-items: center;margin: 0;">
                     <div class="" style="width: 150px;">Giờ cân có tải</div>
-                    <div>: ${details.dateLoadedScale}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; align-items: center; margin: 0;">
                     <div class="" style="width: 150px;">Giờ cân không tải</div>
-                    <div>: ${details.dateUnLoadedScale}</div>
+                    <div>: 00123</div>
                 </div>
                 <div style="display: flex; align-items: center;margin: 0;">
                     <div class="" style="width: 150px;">Mục đích cân</div>
-                    <div>: ${details.purpose_name}</div>
+                    <div>: 00123</div>
                 </div>
             </div>
 
@@ -189,17 +120,17 @@ ipcMain.on('print-details', async (event, details) => {
             <div style="display: flex; align-items: center;margin: 0; ">
                 <div class="" style="width: 250px; font-weight: 700;">Trọng lượng hàng và xe</div>
                 <div class="">:</div>
-                <div style="width: 100px; text-align: center;"> ${details.loadedScale}</div>
+                <div style="width: 100px; text-align: center;"> 00123</div>
             </div>
             <div style="display: flex; align-items: center; margin-top: 0.75rem; ">
                 <div class="" style="width: 250px; font-weight: 700;">Trọng lượng xe</div>
                 <div class="">:</div>
-                <div style="width: 100px; text-align: center;"> ${details.unLoadedScale}</div>
+                <div style="width: 100px; text-align: center;"> 00123</div>
             </div>
             <div style="display: flex; align-items: center; margin-top: 0.75rem;">
                 <div class="" style="width: 250px; font-weight: 700;">Trừ bì</div>
                 <div class="">:</div>
-                <div style="width: 100px; text-align: center;"> ${details.tare}</div>
+                <div style="width: 100px; text-align: center;"> 00123</div>
             </div>
             <div style="display: flex; align-items: center; margin-top: 0.25rem; ">
                 <div class="" style="width: 250px; font-weight: 700;"></div>
@@ -209,7 +140,7 @@ ipcMain.on('print-details', async (event, details) => {
             <div style="display: flex; align-items: center; margin-top: 0.5rem;; ">
                 <div class="" style="width: 250px; font-weight: 700; ">Trọng lượng thực</div>
                 <div class="">:</div>
-                <div style="width: 100px; text-align: center;"> ${details.total_weight}</div>
+                <div style="width: 100px; text-align: center;"> 00123</div>
             </div>
         </div>
     </div>
@@ -231,37 +162,3 @@ ipcMain.on('print-details', async (event, details) => {
 </body>
 
 </html>
-    `;
-     // Tạo một cửa sổ ẩn để chuyển đổi HTML thành PDF
-     const win = new BrowserWindow({ show: false });
-     const pdfPath = path.join(app.getPath('userData'), 'details.pdf');
-
-    // Tải HTML vào cửa sổ
-    win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
-
-    // Đợi cho trang tải xong
-    win.webContents.on('did-finish-load', async () => {
-      // Chuyển đổi HTML thành PDF
-      const pdfData = await win.webContents.printToPDF({});
-      fs.writeFileSync(pdfPath, pdfData);
-
-      // In tệp PDF (sử dụng chức năng in tùy vào nhu cầu của bạn)
-      // await printPDF(pdfPath); // Giả sử bạn có một hàm printPDF để in tệp
-
-      event.reply('print-details-reply', { success: true });
-    });
-  } catch (error) {
-    console.error('Error printing details:', error);
-    event.reply('print-details-reply', { success: false, error: error.message });
-  }
-});
-
-// Hàm in tệp PDF
-async function printPDF(pdfPath) {
-  try {
-    await electronPDF.print(pdfPath);
-  } catch (error) {
-    console.error('Error printing PDF:', error);
-    throw error;
-  }
-}

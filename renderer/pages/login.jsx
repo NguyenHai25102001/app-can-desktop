@@ -6,8 +6,8 @@ import { useRouter } from 'next/router';
 
 
 const Login = () => {
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
+    const [phone, setPhone] = useState('0915559221');
+    const [password, setPassword] = useState('123456789');
     const router = useRouter();
 
     const handleLogin = async (e) => {
@@ -33,7 +33,7 @@ const Login = () => {
             if (res.status === true) {
                 sessionStorage.setItem('token_customer', res.token);
                 Toast({ type: 'success', message: 'Đăng nhập thành công' });
-                router.push('/home', { token:res.token });
+                router.push('/home');
                 setPhone('')    // Reset phone
                 setPassword('')  // Reset password
 
@@ -79,9 +79,9 @@ const Login = () => {
                                     name="email"
                                     type="number"
                                     autoComplete="email"
-                                    required=""
                                     className="block w-full rounded-md border-0 py-1.5 px-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     onChange={(e) => setPhone(e.target.value)}
+                                    value={phone}
                                 />
                             </div>
                         </div>
@@ -100,7 +100,7 @@ const Login = () => {
                                     name="password"
                                     type="password"
                                     autoComplete="current-password"
-                                    required=""
+                                    value={password}
                                     className="block w-full rounded-md border-0 py-1.5 px-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
