@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import serve from 'electron-serve';
 import { createWindow } from './helpers';
 const { SerialPort } = require('serialport');
@@ -8,7 +8,6 @@ import { print } from "pdf-to-printer";
 const PDFDocument = require('pdfkit');
 const electronPDF = require('electron-pdf');
 const isProd = process.env.NODE_ENV === 'production';
-const { autoUpdater } = require('electron-updater');
 
 if (isProd) {
   serve({ directory: 'app' });
@@ -30,40 +29,7 @@ let mainWindow;
         icon: path.join(__dirname, 'icon.ico')
       },
     });
-
-    autoUpdater.on('update-available', () => {
-      const dialogOpts = {
-        type: 'info',
-        buttons: ['OK'],
-        title: 'Cập nhật có sẵn',
-        message: 'Có một bản cập nhật mới. Ứng dụng sẽ tải xuống và cài đặt tự động.',
-      };
-      dialog.showMessageBox(dialogOpts);
-    });
-
-    autoUpdater.on('update-downloaded', () => {
-      const dialogOpts = {
-        type: 'info',
-        buttons: ['Cài đặt và khởi động lại'],
-        title: 'Cập nhật sẵn sàng',
-        message: 'Bản cập nhật đã được tải xuống. Ứng dụng sẽ khởi động lại và cài đặt.',
-      };
-
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall();
-      });
-    });
-
-    autoUpdater.on('error', (error) => {
-      const dialogOpts = {
-        type: 'error',
-        buttons: ['OK'],
-        title: 'Lỗi cập nhật',
-        message: error == null ? 'Lỗi không xác định' : (error.stack || error).toString(),
-      };
-      dialog.showMessageBox(dialogOpts);
-    });
-
+    mainWindow.setMenu(null); // Thêm dòng này để loại bỏ menu
     if (isProd) {
       await mainWindow.loadURL('app://./login');
     } else {
@@ -82,10 +48,6 @@ let mainWindow;
       mainWindow.webContents.send('serial-data', data.toString().match(/\d+/g).join(""));
     });
 
-    // Kiểm tra cập nhật khi cửa sổ đã sẵn sàng
-    mainWindow.once('ready-to-show', () => {
-      autoUpdater.checkForUpdatesAndNotify();
-    });
 
   } else {
     mainWindow.focus();

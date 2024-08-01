@@ -6,8 +6,8 @@ import { useRouter } from 'next/router';
 
 
 const Login = () => {
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
+    const [phone, setPhone] = useState('0915559221');
+    const [password, setPassword] = useState('123456789');
     const router = useRouter();
 
     const handleLogin = async (e) => {

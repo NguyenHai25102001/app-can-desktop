@@ -40,8 +40,16 @@ const Toast = ({ type, message }) => {
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
     const year = date.getFullYear();
 
-    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    return `${hours}:${minutes}:${seconds} </br> ${day}/${month}/${year}`;
 };
 
+function calculate(loadedScale, unLoadedScale, tare) {
+    const adjustedLoadedScale = loadedScale ?? 0;
+    const adjustedUnLoadedScale = unLoadedScale ?? 0;
+    const adjustedTare = tare ?? 0;
+    const result = adjustedLoadedScale > adjustedUnLoadedScale ? (adjustedLoadedScale - adjustedUnLoadedScale - adjustedTare) : 0;
+    return result;
+}
 
-export  {Toast,formatDateTime}
+
+export  {Toast,formatDateTime,calculate}

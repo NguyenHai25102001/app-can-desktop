@@ -4,7 +4,7 @@ import { apis, request_url } from "../components/apis";
 import CreatableSelect from 'react-select/creatable';
 
 import Link from "next/link";
-import { formatDateTime, Toast } from "../components/uitli";
+import { calculate, formatDateTime, Toast } from "../components/uitli";
 import Load from '../components/load';
 import { set } from 'electron-pdf/lib/logger';
 
@@ -160,7 +160,9 @@ export default function HomePage() {
             Toast({ type: 'error', message: 'Tạo phiếu lưu tạm thất bại!' })
 
         } finally {
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 2000);
         }
     }
 
@@ -173,7 +175,6 @@ export default function HomePage() {
         try {
             const res = await request_url({
                 url: apis.update_electronic_scale(),
-
                 method: 'POST',
                 token: token,
                 data: {
@@ -195,6 +196,7 @@ export default function HomePage() {
             });
 
             if (res?.status) {
+                handleDetail(res?.data);
                 getDataListCustomer();
                 getDataElectronicScale(1);
                 Toast({ type: 'success', message: 'Cập nhật phiếu lưu tạm thành công!' })
@@ -206,7 +208,9 @@ export default function HomePage() {
             Toast({ type: 'error', message: 'Cập nhật phiếu lưu tạm thất bại!' })
 
         } finally {
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 2000); // Set the loading state to false after 3 seconds
         }
     }
 
@@ -341,158 +345,243 @@ export default function HomePage() {
                         </div>
 
                         <div className="pt-[70px]">
-                            <div className="w-[80%] m-auto border-2 rounded-lg mt-5 relative">
-                                <div className="p-5 border-b-2">
+                            <div className="w-[95%] m-auto border-2 rounded-lg mt-5 relative">
+                                {/* <div className="p-5 border-b-2">
                                     <div className="flex items-center justify-between">
                                         <div className="text-xl font-semibold text-[#28293D">Phiếu Cân</div>
-                                        {/* <div className="">
+                                        <div className="">
                                     <select className={'bg-[#06C270] text-white text-sm font-bold px-2 py-1 rounded'}>
                                         <option value="1">Có Tải trọng</option>
                                         <option value="2">Có không tải</option>
                                     </select>
-                                </div> */}
-                                    </div>
                                 </div>
-                                <div className="p-5">
-                                    <div className="grid grid-cols-3 gap-5">
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Ngày cân có tải</div>
-                                            <div
-                                                className="mt-2 border w-full text-center py-2 rounded text-sm font-bold text-[#5C64D0] h-[36px]">
-                                                {dateLoadedScale !== '' ? formatDateTime(dateLoadedScale) : ""}
+                                    </div>
+                                </div> */}
+                                <div className="">
+                                    <div className='flex w-full '>
+                                        <div className='w-[40%] p-5'>
+
+                                            <table className='w-full'>
+                                                <tbody>
+                                                    <tr className=''>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Số xe</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <input type="text" value={licensePlates}
+                                                                onChange={(e) => setLicensePlates(e.target.value)}
+                                                                className={'mt-2 h-[36px] w-full border text-center py-2 rounded text-sm font-bold text-[#5C64D0]'} />
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Khách hàng</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <CreatableSelect
+                                                                placeholder={'Nhập khách hàng...'}
+                                                                isClearable
+                                                                value={customerName ? { value: customerName, label: customerName } : null}
+                                                                options={
+                                                                    listCustomer?.map((item) => {
+                                                                        return { value: item.name, label: item.name }
+                                                                    })
+
+                                                                } className={'w-full h-[40px] mt-2'} onChange={handleCustomerChange} />
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Trạng thái cân</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <select
+                                                                className={'mt-2 border h-[36px] w-full text-center py-2 rounded text-sm font-bold text-[#5C64D0]'}
+                                                                value={purpose}
+                                                                onChange={(e) => setPurpose(e.target.value)}>
+                                                                <option value="1">PHIẾU NHẬP</option>
+                                                                <option value="2">PHIẾU XUẤT</option>
+                                                                <option value="3">DỊCH VỤ</option>
+                                                            </select>
+                                                        </td>
+                                                    </tr>
+
+
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Tên hàng</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <input type="text"
+                                                                value={productName}
+                                                                onChange={(e) => setProductName(e.target.value)}
+                                                                className={'mt-2 border h-[36px] text-center py-2 rounded text-sm font-bold text-[#5C64D0] w-full'} />
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Số bì</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <input type="number"
+                                                                value={tare}
+                                                                onChange={(e) => setTare(e.target.value)}
+                                                                className={'mt-2 border h-[36px] text-center py-2 rounded text-sm font-bold text-[#5C64D0] w-full'} />
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Ghi chú bì</div>                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <textarea
+                                                                className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
+                                                                onChange={(e) => setExplainTare(e.target.value)}
+
+                                                                placeholder={'Nhập...'}>{explainTare}
+
+                                                            </textarea>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Ghi chú</div>                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <textarea
+                                                                className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
+                                                                onChange={(e) => setExplain(e.target.value)}
+
+                                                                placeholder={'Nhập...'}>{explain}
+
+                                                            </textarea>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+                                        <div className="w-[60%] pl-5 pt-5 pb-5">
+                                            <div className='font-medium text-l '>Khối lượng cân hiện tại:</div>
+
+                                            <div className="flex justify-between items-end mt-5">
+                                                <div>
+                                                    <div className=" border-2 rounded px-3 py-1">
+                                                        <table>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td className='px-3 py-1 font-semibold text-nowrap'>Trọng lượng hàng:</td>
+                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{loadedScale}</td>
+                                                                    <td className='text-sm '>
+                                                                        <div className=' mt-2'>
+                                                                            {dateLoadedScale ?? formatDateTime(dateLoadedScale)}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td className='px-3 py-1 font-semibold'>Trọng lượng xe:</td>
+                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{unLoadedScale}</td>
+                                                                    <td className='text-sm '>
+                                                                        <div className=' mt-2'>
+                                                                            {dateLoadedScale ?? formatDateTime(dateLoadedScale)}
+                                                                        </div>
+                                                                    </td>
+
+                                                                </tr>
+                                                                <tr>
+                                                                    <td className='px-3 py-1 font-semibold'>Trừ bì:</td>
+                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{tare??0}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td></td>
+                                                                    <td className='border-b-2 border-black'></td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td></td>
+                                                                    <td className=' py-1 text-xl font-bold text-end' >
+                                                                      {calculate(loadedScale, unLoadedScale, tare)}
+                                                                         <sub>Kg</sub></td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                <div className="  py-2 px-3 bg-[#E5D120] text-center rounded-tl-3xl inline-block ">
+                                                    <div className="text-base text-[#28293D] font-semibold">Trọng lượng</div>
+                                                    <div className="flex items-end justify-center">
+                                                        <div
+                                                            className="text-gradient text-[40px] font-semibold w-[150px] text-end">{serialData}</div>
+                                                        <div className="text-xl text-[#28293D] font-semibold ml-3">Kg</div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
+                                            <div className='mt-10'>
 
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Số xe</div>
-                                            <input type="text" value={licensePlates}
-                                                onChange={(e) => setLicensePlates(e.target.value)}
-                                                className={'mt-2 h-[36px] w-full border text-center py-2 rounded text-sm font-bold text-[#5C64D0]'} />
-                                        </div>
+                                                <div className="mt-5">
+                                                    <div className=" grid grid-cols-2 gap-5">
+                                                        <div
+                                                            className={`flex items-center rounded-lg px-2 py-3 gap-3 ${loadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
+                                                            <div className="cursor-pointer" onClick={() => handleLoadedScale(serialData)}>
+                                                                <img src="/images/can.png"
+                                                                    className={'size-[80px] object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
+                                                                    alt="anh" />
+                                                            </div>
+                                                            <div className="">
+                                                                <div className="text-base font-bold text-[#28293D]">Cân có tải</div>
+                                                                <div className="flex items-end">
+                                                                    <div
+                                                                        className=" text-gradient text-[38px] font-semibold ms-5">{loadedScale}</div>
+                                                                    <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
+                                                                </div>
+                                                            </div>
 
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Khách hàng</div>
-                                            <CreatableSelect
-                                                placeholder={'Nhập khách hàng...'}
-                                                isClearable
-                                                value={customerName ? { value: customerName, label: customerName } : null}
-                                                options={
-                                                    listCustomer?.map((item) => {
-                                                        return { value: item.name, label: item.name }
-                                                    })
+                                                        </div>
+                                                        <div
+                                                            className={`flex items-center rounded-lg px-2 py-3 gap-3 ${unLoadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
+                                                            <div className="cursor-pointer"
+                                                                onClick={() => handleUnLoadedScale(serialData)}
+                                                            >
+                                                                <img src="/images/can2.png"
+                                                                    className={'size-[80px] px-2  object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
+                                                                    alt="anh" />
+                                                            </div>
+                                                            <div className="">
+                                                                <div className="text-base font-bold text-[#28293D]">Cân không tải</div>
+                                                                <div className="flex items-end">
+                                                                    <div
+                                                                        className=" text-gradient text-[38px] font-semibold ms-5">{unLoadedScale}</div>
+                                                                    <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
+                                                                </div>
 
-                                                } className={'w-full h-[40px] mt-2'} onChange={handleCustomerChange} />
+                                                            </div>
 
-                                        </div>
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Ngày cân không có tải</div>
-                                            <div
-                                                className="mt-2 border w-full text-center py-2 rounded text-sm font-bold text-[#5C64D0] h-[36px]">
+                                                        </div>
 
-                                                {dateUnLoadedScale !== '' && dateUnLoadedScale !== undefined ? formatDateTime(dateUnLoadedScale) : ''}
+                                                    </div>
+                                                </div>
+
+
+
                                             </div>
-                                        </div>
-
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Tên hàng</div>
-                                            <input type="text"
-                                                value={productName}
-                                                onChange={(e) => setProductName(e.target.value)}
-                                                className={'mt-2 border h-[36px] text-center py-2 rounded text-sm font-bold text-[#5C64D0] w-full'} />
-                                        </div>
-
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Trạng thái cân</div>
-
-                                            <select
-                                                className={'mt-2 border h-[36px] w-full text-center py-2 rounded text-sm font-bold text-[#5C64D0]'}
-                                                value={purpose}
-                                                onChange={(e) => setPurpose(e.target.value)}>
-                                                <option value="1">PHIẾU NHẬP</option>
-                                                <option value="2">PHIẾU XUẤT</option>
-                                                <option value="3">DỊCH VỤ</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Số bì</div>
-                                            <input type="number"
-                                                value={tare}
-                                                onChange={(e) => setTare(e.target.value)}
-                                                className={'mt-2 border h-[36px] text-center py-2 rounded text-sm font-bold text-[#5C64D0] w-full'} />
-                                        </div>
-
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Ghi chú bì</div>
-                                            <textarea
-                                                className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
-                                                onChange={(e) => setExplainTare(e.target.value)}
-
-                                                placeholder={'Nhập...'}>{explainTare}
-
-                                            </textarea>
-                                        </div>
-
-                                        <div className="">
-                                            <div className="text-base text-[#28293D] font-semibold">Ghi chú</div>
-                                            <textarea
-                                                className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
-                                                onChange={(e) => setExplain(e.target.value)}
-
-                                                placeholder={'Nhập...'}>{explain}
-
-                                            </textarea>
                                         </div>
 
 
                                     </div>
 
-                                    <div className="mt-5">
-                                        <div className=" grid grid-cols-2 gap-5">
-                                            <div
-                                                className={`flex items-center rounded-lg px-2 py-3 gap-3 ${loadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
-                                                <div className="cursor-pointer" onClick={() => handleLoadedScale(serialData)}>
-                                                    <img src="/images/can.png"
-                                                        className={'size-[80px] object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
-                                                        alt="anh" />
-                                                </div>
-                                                <div className="">
-                                                    <div className="text-base font-bold text-[#28293D]">Cân có tải</div>
-                                                    <div className="flex items-end">
-                                                        <div
-                                                            className=" text-gradient text-[38px] font-semibold ms-5">{loadedScale}</div>
-                                                        <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
-                                                    </div>
-                                                </div>
-
-                                            </div>
-                                            <div
-                                                className={`flex items-center rounded-lg px-2 py-3 gap-3 ${unLoadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
-                                                <div className="cursor-pointer"
-                                                    onClick={() => handleUnLoadedScale(serialData)}
-                                                >
-                                                    <img src="/images/can2.png"
-                                                        className={'size-[80px] px-2  object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
-                                                        alt="anh" />
-                                                </div>
-                                                <div className="">
-                                                    <div className="text-base font-bold text-[#28293D]">Cân không tải</div>
-                                                    <div className="flex items-end">
-                                                        <div
-                                                            className=" text-gradient text-[38px] font-semibold ms-5">{unLoadedScale}</div>
-                                                        <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-                                    </div>
 
                                     {
                                         electronic_scale_id === '' ? (
-                                            <div className="flex justify-center mt-14 gap-3">
+                                            <div className="flex justify-center mb-3 gap-3">
                                                 <div
                                                     className="inline-block text-xl rounded-lg font-semibold text-white  bg-indigo-600 px-5 py-1 cursor-pointer select-none"
                                                     onClick={resetForm}>Phiếu mới
@@ -505,7 +594,7 @@ export default function HomePage() {
                                             </div>
 
                                         ) : (
-                                            <div className="flex justify-start mt-14 gap-3 ">
+                                            <div className="flex justify-center mb-3 gap-3 ">
                                                 <div
                                                     onClick={resetForm}
                                                     className="inline-block text-xl rounded-lg font-semibold text-white  bg-indigo-600 px-5 py-1 cursor-pointer select-none" >Phiếu
@@ -550,46 +639,12 @@ export default function HomePage() {
 
 
                                 </div>
-                                <div className="absolute bottom-0 right-0 py-2 px-3 bg-[#E5D120] text-center rounded-tl-3xl ">
-                                    <div className="text-base text-[#28293D] font-semibold">Trọng lượng</div>
-                                    <div className="flex items-end justify-center">
-                                        <div
-                                            className="text-gradient text-[40px] font-semibold w-[150px] text-end">{serialData}</div>
-                                        <div className="text-xl text-[#28293D] font-semibold ml-3">Kg</div>
-                                    </div>
-                                </div>
+
 
                             </div>
 
                         </div>
-                        <div>
-                            <div className="w-[300px] border-2 rounded px-3 py-1  m-auto mt-10">
-                                <table>
-                                    <tbody>
-                                        <tr>
-                                            <td className='px-3 py-1 font-semibold'>Trọng lượng hàng:</td>
-                                            <td className='py-1'>44</td>
-                                        </tr>
-                                        <tr>
-                                            <td className='px-3 py-1 font-semibold'>Trọng lượng xe:</td>
-                                            <td>44</td>
-                                        </tr>
-                                        <tr>
-                                            <td className='px-3 py-1 font-semibold'>Trừ bì:</td>
-                                            <td></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td className='border-b-2 border-black'></td>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td>12</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                      
 
 
                         <div className="my-10">
@@ -671,7 +726,10 @@ export default function HomePage() {
                                                                 handleDetail(item)
                                                                 setElectronic_scale_id(item.id)
                                                             }}
-                                                            className={`bg-white border-b text-gray-900 dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 ${item.id === electronic_scale_id ? 'bg-blue-500 hover:bg-blue-500 text-white' : ''}`}>
+                                                            className={`bg-white border-b text-gray-900 dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 `}
+                                                            style={{
+                                                                backgroundColor: item.id === electronic_scale_id ? '#E5D120' : ''
+                                                            }}>
                                                             <td className="w-4 p-4">
                                                                 <div className="flex items-center">
                                                                     <input id="checkbox-table-search-1"
@@ -684,7 +742,7 @@ export default function HomePage() {
                                                             </td>
                                                             <th scope="row"
                                                                 className="px-6 py-4 font-medium  whitespace-nowrap dark:text-white">
-                                                                {item?.supplier_name} 
+                                                                {item?.supplier_name}
                                                             </th>
                                                             <td className="px-6 py-4">
                                                                 <div className="text-nowrap">
