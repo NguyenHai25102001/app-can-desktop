@@ -6,8 +6,8 @@ import { useRouter } from 'next/router';
 
 
 const Login = () => {
-    const [phone, setPhone] = useState('0915559221');
-    const [password, setPassword] = useState('123456789');
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
     const router = useRouter();
 
     const handleLogin = async (e) => {
@@ -50,8 +50,7 @@ const Login = () => {
         <>
             <Head>
                 <title>Phần mềm cân WinGroup (tel:0354583367)</title>
-                <link rel="icon" href="/images/icon.ico" /> {/* Đảm bảo đường dẫn chính xác tới tệp favicon */}
-            </Head>
+                <link rel="icon" href="/images/icon.ico" />            </Head>
 
             <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
                 <div className="sm:mx-auto sm:w-full sm:max-w-sm">

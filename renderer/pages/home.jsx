@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react'
 import Head from 'next/head';
 import { apis, request_url } from "../components/apis";
 import CreatableSelect from 'react-select/creatable';
-
 import Link from "next/link";
-import { calculate, formatDateTime, Toast } from "../components/uitli";
+import { calculate, formatDateTime, formatNumber, Toast } from "../components/uitli";
 import Load from '../components/load';
-import { set } from 'electron-pdf/lib/logger';
+import Select from 'react-select';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { vi } from 'date-fns/locale';
+import { format } from 'date-fns';
+
 
 
 export default function HomePage() {
@@ -34,6 +38,14 @@ export default function HomePage() {
     const [purpose_name, setPurposeName] = useState('');
     const [total_weight, setTotalWeight] = useState('');
     const [key_search, setKeySearch] = useState('');
+    const [dateTare, setDateTare] = useState('');
+    const [userCreated, setUserCreated] = useState('');
+    const [status, setStatus] = useState('');
+    const [keyStatus, setKeyStatus] = useState('');
+    const [keyStatusName, setKeyStatusName] = useState('');
+    const [date_to, setDateTo] = useState();
+    const [date_form, setDateForm] = useState();
+
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -73,13 +85,18 @@ export default function HomePage() {
     const getDataElectronicScale = async () => {
 
         try {
+
             const res = await request_url({
                 url: apis.electronic_scale(),
                 method: 'POST',
                 token: token,
                 data: {
                     page: page,
-                    key_search: key_search,
+                    key_search: key_search ,
+                    status: keyStatus,
+                    date_to: date_to ? format(date_to, 'dd/MM/yyyy HH:mm') : '',
+                    date_form: date_form ? format(date_form, 'dd/MM/yyyy HH:mm') : '',
+
                 }
             });
 
@@ -99,29 +116,27 @@ export default function HomePage() {
         getDataElectronicScale(page);
     }, [page, token]);
 
-
-
     useEffect(() => {
         window.ipc.onSerialData((data) => {
             if (data.length > 4) {
-
                 setSerialData(parseInt(data));
             }
         });
     }, []);
+
     const handleCustomerChange = (selectedOption) => {
         setCustomerName(selectedOption ? selectedOption.value : '');
         if (selectedOption) {
             const customer = listCustomer.find((item) => item.name === selectedOption.value);
             setCustomerId(customer?.id)
         }
-
     };
 
 
     const handleStoreElectronicScale = async () => {
-        if (licensePlates === '' || productName === '' || loadedScale === 0 || customerName === '') {
+        if (loadedScale === '' || unLoadedScale === '') {
             Toast({ type: 'warning', message: 'Vui lòng nhập đủ thông tin!' })
+            console.log(loadedScale, unLoadedScale);
             return;
         }
         setLoading(true);
@@ -143,13 +158,12 @@ export default function HomePage() {
                     purpose: purpose,
                     tare: tare,
                     explain_tare: explainTare,
-                    purpose_name: purpose === 1 ? "PHIẾU NHẬP" : purpose === 2 ? "NHẬP" : purpose === 3 ? "XUẤT" : ""
+                    purpose_name: purpose_name
                 }
             });
 
             if (res?.status) {
-
-                handleDetail(res?.data);
+                resetForm();
                 getDataElectronicScale(1);
                 getDataListCustomer();
                 Toast({ type: 'success', message: 'Tạo phiếu lưu tạm thành công!' })
@@ -162,17 +176,18 @@ export default function HomePage() {
         } finally {
             setTimeout(() => {
                 setLoading(false);
-            }, 2000);
+            }, 1500);
         }
     }
 
     const handleUpdateElectronicScale = async () => {
-        if (licensePlates === '' || productName === '' || loadedScale === 0 || customerName === '' || electronic_scale_id === '') {
+        if (loadedScale === '' || unLoadedScale === '') {
             Toast({ type: 'warning', message: 'Vui lòng nhập đủ thông tin!' })
             return;
         }
         setLoading(true);
         try {
+
             const res = await request_url({
                 url: apis.update_electronic_scale(),
                 method: 'POST',
@@ -191,15 +206,16 @@ export default function HomePage() {
                     purpose: purpose,
                     tare: tare,
                     explain_tare: explainTare,
-                    purpose_name: purpose === 1 ? "PHIẾU NHẬP" : purpose === 2 ? "NHẬP" : purpose === 3 ? "XUẤT" : ""
+                    purpose_name: purpose_name
                 }
             });
+
 
             if (res?.status) {
                 handleDetail(res?.data);
                 getDataListCustomer();
                 getDataElectronicScale(1);
-                Toast({ type: 'success', message: 'Cập nhật phiếu lưu tạm thành công!' })
+                // Toast({ type: 'success', message: 'Cập nhật phiếu lưu tạm thành công!' })
             } else {
                 console.log(res)
                 Toast({ type: 'error', message: 'Cập nhật phiếu lưu tạm thất bại!' })
@@ -210,10 +226,9 @@ export default function HomePage() {
         } finally {
             setTimeout(() => {
                 setLoading(false);
-            }, 2000); // Set the loading state to false after 3 seconds
+            }, 1500); // Set the loading state to false after 3 seconds
         }
     }
-
 
     const resetForm = () => {
         setElectronic_scale_id('')
@@ -223,28 +238,40 @@ export default function HomePage() {
         setProductName('')
         setLoadedScale(0)
         setUnLoadedScale(0)
-        setExplain('');
+        setExplainTare('');
         setCustomerName('');
         setDateUnLoadedScale('');
         setDateLoadedScale('')
         setTare(0);
+        setExplain('')
+        setDateTare('');
+        setUserCreated('');
+        setCodeScale('');
+        setPurpose('');
+        setPurposeName('');
+        setStatus('');
     }
 
     const handleDetail = (item) => {
+        console.log(item);
         setElectronic_scale_id(item?.id)
-        setCustomerName(item?.supplier_name)
-        setLicensePlates(item?.license_plates)
-        setProductName(item?.product_name)
+        setCustomerName(item.supplier_name ? item.supplier_name : '')
+        setLicensePlates(item?.license_plates ? item.license_plates : '')
+        setProductName(item?.product_name ? item.product_name : '')
         setLoadedScale(item?.loaded_scale)
         setUnLoadedScale(item.unloaded_scale)
         setExplain(item?.explain)
-        setDateLoadedScale(item?.date_time_loaded_scale)
-        setDateUnLoadedScale(item?.date_time_unloaded_scale)
+        setDateLoadedScale(item?.date_time_loaded_scale);
+        setDateUnLoadedScale(item?.date_time_unloaded_scale);
         setTare(item?.tare);
         setExplainTare(item?.explain_tare);
         setCodeScale(item?.code_scale);
         setPurposeName(item?.purpose_name);
         setTotalWeight(item?.total_weight);
+        setDateTare(item?.date_time_tare);
+        setUserCreated(item?.user_created);
+        setPurpose(item?.purpose);
+        setStatus(item?.status);
     }
 
     const complete_electronic_scale = async (id) => {
@@ -282,7 +309,9 @@ export default function HomePage() {
         unloadedScale,
         tare,
         purpose_name,
-        total_weight
+        total_weight,
+        dateTare,
+        userCreated
     ) => {
         const details = {
             code_scale,
@@ -296,14 +325,57 @@ export default function HomePage() {
             unloadedScale,
             tare,
             purpose_name,
-            total_weight
+            total_weight,
+            dateTare,
+            userCreated,
         };
         window.ipc.send('print-details', details);
     };
 
+    const handleCancel = () => {
+        setElectronic_scale_id('');
+        setKeySearch('');
+        setKeyStatus('');
+        setKeyStatusName('');
+        setDateTo('');
+        setDateForm('');
+        getDataElectronicScale();
+    };
+
+    const dataPurpose = [
+        {
+            purpose: 1,
+            purpose_name: 'PHIẾU NHẬP'
+        },
+        {
+            purpose: 2,
+            purpose_name: 'PHIẾU XUẤT'
+        },
+        {
+            purpose: 3,
+            purpose_name: 'DỊCH VỤ'
+        }
+    ];
+    const dataStatus = [
+        {
+            status: '',
+            status_name: 'Tất cả'
+
+        },
+        {
+            status: 1,
+            status_name: 'Chưa hoàn thành'
+        },
+        {
+            status: 2,
+            status_name: 'Hoàn thành'
+        }
+    ];
+
+
+
     return (
         <React.Fragment>
-
             {
                 loading ? (
                     <Load />
@@ -359,10 +431,31 @@ export default function HomePage() {
                                 </div> */}
                                 <div className="">
                                     <div className='flex w-full '>
-                                        <div className='w-[40%] p-5'>
+                                        <div className='w-[50%] p-5'>
 
-                                            <table className='w-full'>
+                                            <table className='w-full '>
                                                 <tbody>
+                                                    <tr className=''>
+                                                        <td className='py-1'>
+                                                            <div className="text-base text-[#28293D] font-semibold">Mã số phiếu</div>
+                                                        </td>
+
+                                                        <td className='py-1'>
+                                                            <div>
+                                                                {
+                                                                    code_scale ?
+                                                                        (<div >
+                                                                            <div className="text-base text-[#28293D] font-semibold">{code_scale}  {userCreated ?
+                                                                                (<span className='ml-8'>
+                                                                                    ({userCreated})
+                                                                                </span>) : ''}</div>
+                                                                        </div>) : ('')
+                                                                }
+
+                                                            </div>
+
+                                                        </td>
+                                                    </tr>
                                                     <tr className=''>
                                                         <td className='py-1'>
                                                             <div className="text-base text-[#28293D] font-semibold">Số xe</div>
@@ -379,7 +472,7 @@ export default function HomePage() {
                                                             <div className="text-base text-[#28293D] font-semibold">Khách hàng</div>
                                                         </td>
 
-                                                        <td className='py-1'>
+                                                        <td className='py-1 '>
                                                             <CreatableSelect
                                                                 placeholder={'Nhập khách hàng...'}
                                                                 isClearable
@@ -399,14 +492,21 @@ export default function HomePage() {
                                                         </td>
 
                                                         <td className='py-1'>
-                                                            <select
-                                                                className={'mt-2 border h-[36px] w-full text-center py-2 rounded text-sm font-bold text-[#5C64D0]'}
-                                                                value={purpose}
-                                                                onChange={(e) => setPurpose(e.target.value)}>
-                                                                <option value="1">PHIẾU NHẬP</option>
-                                                                <option value="2">PHIẾU XUẤT</option>
-                                                                <option value="3">DỊCH VỤ</option>
-                                                            </select>
+                                                            <Select
+                                                                placeholder={'Chọn phiếu...'}
+                                                                isClearable
+                                                                value={purpose && purpose_name ? { value: purpose, label: purpose_name } : null}
+                                                                options={
+                                                                    dataPurpose?.map((item) => {
+                                                                        return { value: item.purpose, label: item.purpose_name }
+                                                                    })
+
+
+                                                                } className={'w-full h-[40px] mt-2'} onChange={(e) => {
+                                                                    setPurpose(e?.value);
+                                                                    setPurposeName(e?.label)
+                                                                }} />
+
                                                         </td>
                                                     </tr>
 
@@ -437,7 +537,7 @@ export default function HomePage() {
                                                         </td>
                                                     </tr>
 
-                                                    <tr>
+                                                    {/* <tr>
                                                         <td className='py-1'>
                                                             <div className="text-base text-[#28293D] font-semibold">Ghi chú bì</div>                                                        </td>
 
@@ -445,12 +545,11 @@ export default function HomePage() {
                                                             <textarea
                                                                 className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
                                                                 onChange={(e) => setExplainTare(e.target.value)}
-
-                                                                placeholder={'Nhập...'}>{explainTare}
+                                                                placeholder={'Nhập...'} value={explainTare}>
 
                                                             </textarea>
                                                         </td>
-                                                    </tr>
+                                                    </tr> */}
 
                                                     <tr>
                                                         <td className='py-1'>
@@ -460,9 +559,8 @@ export default function HomePage() {
                                                             <textarea
                                                                 className={'mt-2 border w-full text-start py-2 px-2 rounded text-sm font-bold text-[#5C64D0] '}
                                                                 onChange={(e) => setExplain(e.target.value)}
-
-                                                                placeholder={'Nhập...'}>{explain}
-
+                                                                value={explain}
+                                                                placeholder={'Nhập...'}>
                                                             </textarea>
                                                         </td>
                                                     </tr>
@@ -471,108 +569,79 @@ export default function HomePage() {
                                             </table>
 
                                         </div>
-                                        <div className="w-[60%] pl-5 pt-5 pb-5">
-                                            <div className='font-medium text-l '>Khối lượng cân hiện tại:</div>
+                                        <div className="w-[50%] p-5">
+                                            <div className="  py-2 px-3 border bg-gray-100 text-center rounded-xl ">
+                                                <div className="text-base text-[#28293D] font-semibold">Khối lượng cân thực thế</div>
+                                                <div className="flex items-end justify-center">
+                                                    <div
+                                                        className="text-gradient text-[40px] font-semibold w-[150px] text-end">{formatNumber(serialData)}</div>
+                                                    <div className="text-xl text-[#28293D] font-semibold ml-3">Kg</div>
+                                                </div>
+                                            </div>
 
-                                            <div className="flex justify-between items-end mt-5">
+                                            <div className=" mt-5">
                                                 <div>
                                                     <div className=" border-2 rounded px-3 py-1">
-                                                        <table>
+                                                        <table className='table-auto w-full content'>
                                                             <tbody>
-                                                                <tr>
-                                                                    <td className='px-3 py-1 font-semibold text-nowrap'>Trọng lượng hàng:</td>
-                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{loadedScale}</td>
-                                                                    <td className='text-sm '>
-                                                                        <div className=' mt-2'>
-                                                                            {dateLoadedScale ?? formatDateTime(dateLoadedScale)}
+                                                                <tr className=''>
+                                                                    <td className='px-3  font-semibold text-nowrap hover:bg-blue-200 cursor-pointer text-xl'
+                                                                        onClick={() => handleLoadedScale(serialData)}>Cân có tải:</td>
+                                                                    <td className='px-3  font-bold text-end text-2xl'>{formatNumber(loadedScale)}</td>
+                                                                    <td className='text-sm min-w-[100px]'>
+                                                                        <div className=' mt-2  ml-2'>
+                                                                            {dateLoadedScale ? formatDateTime(dateLoadedScale) : ''}
                                                                         </div>
+
                                                                     </td>
                                                                 </tr>
                                                                 <tr>
-                                                                    <td className='px-3 py-1 font-semibold'>Trọng lượng xe:</td>
-                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{unLoadedScale}</td>
-                                                                    <td className='text-sm '>
-                                                                        <div className=' mt-2'>
-                                                                            {dateLoadedScale ?? formatDateTime(dateLoadedScale)}
+                                                                    <td className='px-3  font-semibold hover:bg-blue-200 cursor-pointer text-xl'
+                                                                        onClick={() => handleUnLoadedScale(serialData)}>Cân không tải:</td>
+                                                                    <td className='px-3  text-2xl font-bold text-end'>{formatNumber(unLoadedScale)}</td>
+                                                                    <td className='text-sm  '>
+                                                                        <div className=' mt-2 ml-2'>
+                                                                            {dateUnLoadedScale ? formatDateTime(dateUnLoadedScale) : ''}
                                                                         </div>
                                                                     </td>
 
                                                                 </tr>
                                                                 <tr>
-                                                                    <td className='px-3 py-1 font-semibold'>Trừ bì:</td>
-                                                                    <td className='px-3 py-1 text-xl font-bold text-end'>{tare??0}</td>
+                                                                    <td className='px-3  font-semibold text-xl'>Trọng lượng hàng:</td>
+                                                                    <td className='px-3  text-2xl font-bold text-end'>{formatNumber(calculate(loadedScale, unLoadedScale, 0))}</td>
+                                                                    <td className='text-sm '>
+
+                                                                    </td>
+
+                                                                </tr>
+                                                                <tr>
+                                                                    <td className='px-3  font-semibold text-xl'>Trừ bì:</td>
+                                                                    <td className='px-3  text-2xl font-bold text-end'>{tare ? formatNumber(tare) : ''}</td>
+                                                                    <td className='text-sm min-w-[100px]'>
+                                                                        <div className=' mt-2  ml-2'>
+                                                                            {dateTare !== null && dateTare !== '' ? formatDateTime(dateTare) : ''}
+                                                                        </div>
+                                                                    </td>
                                                                 </tr>
                                                                 <tr>
                                                                     <td></td>
                                                                     <td className='border-b-2 border-black'></td>
+                                                                    <td></td>
                                                                 </tr>
                                                                 <tr>
+                                                                    <td className='px-3  font-semibold text-xl'>Trọng lượng thực tế:</td>
+                                                                    <td className='  text-2xl font-bold text-end translate-x-6' >
+                                                                        {formatNumber(calculate(loadedScale, unLoadedScale, tare))}
+                                                                        <sub>Kg</sub></td>
                                                                     <td></td>
-                                                                    <td className=' py-1 text-xl font-bold text-end' >
-                                                                      {calculate(loadedScale, unLoadedScale, tare)}
-                                                                         <sub>Kg</sub></td>
                                                                 </tr>
                                                             </tbody>
                                                         </table>
                                                     </div>
                                                 </div>
-                                                <div className="  py-2 px-3 bg-[#E5D120] text-center rounded-tl-3xl inline-block ">
-                                                    <div className="text-base text-[#28293D] font-semibold">Trọng lượng</div>
-                                                    <div className="flex items-end justify-center">
-                                                        <div
-                                                            className="text-gradient text-[40px] font-semibold w-[150px] text-end">{serialData}</div>
-                                                        <div className="text-xl text-[#28293D] font-semibold ml-3">Kg</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className='mt-10'>
-
-                                                <div className="mt-5">
-                                                    <div className=" grid grid-cols-2 gap-5">
-                                                        <div
-                                                            className={`flex items-center rounded-lg px-2 py-3 gap-3 ${loadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
-                                                            <div className="cursor-pointer" onClick={() => handleLoadedScale(serialData)}>
-                                                                <img src="/images/can.png"
-                                                                    className={'size-[80px] object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
-                                                                    alt="anh" />
-                                                            </div>
-                                                            <div className="">
-                                                                <div className="text-base font-bold text-[#28293D]">Cân có tải</div>
-                                                                <div className="flex items-end">
-                                                                    <div
-                                                                        className=" text-gradient text-[38px] font-semibold ms-5">{loadedScale}</div>
-                                                                    <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
-                                                                </div>
-                                                            </div>
-
-                                                        </div>
-                                                        <div
-                                                            className={`flex items-center rounded-lg px-2 py-3 gap-3 ${unLoadedScale > 0 ? 'bg-[#C9EEFA]' : ''}`}>
-                                                            <div className="cursor-pointer"
-                                                                onClick={() => handleUnLoadedScale(serialData)}
-                                                            >
-                                                                <img src="/images/can2.png"
-                                                                    className={'size-[80px] px-2  object-contain bg-[linear-gradient(180deg,_#A9EFF2_0%,_#3150A0_100%)] rounded'}
-                                                                    alt="anh" />
-                                                            </div>
-                                                            <div className="">
-                                                                <div className="text-base font-bold text-[#28293D]">Cân không tải</div>
-                                                                <div className="flex items-end">
-                                                                    <div
-                                                                        className=" text-gradient text-[38px] font-semibold ms-5">{unLoadedScale}</div>
-                                                                    <div className={'text-base ml-5 text-[#28293D] font-bold'}>Kg</div>
-                                                                </div>
-
-                                                            </div>
-
-                                                        </div>
-
-                                                    </div>
-                                                </div>
-
-
 
                                             </div>
+
                                         </div>
 
 
@@ -583,12 +652,12 @@ export default function HomePage() {
                                         electronic_scale_id === '' ? (
                                             <div className="flex justify-center mb-3 gap-3">
                                                 <div
-                                                    className="inline-block text-xl rounded-lg font-semibold text-white  bg-indigo-600 px-5 py-1 cursor-pointer select-none"
+                                                    className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none"
                                                     onClick={resetForm}>Phiếu mới
                                                 </div>
                                                 <div
                                                     onClick={handleStoreElectronicScale}
-                                                    className="inline-block text-xl rounded-lg font-semibold text-white bg-[#E5D120] px-5 py-1 cursor-pointer select-none">Lưu
+                                                    className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none">Lưu
                                                     tạm
                                                 </div>
                                             </div>
@@ -597,22 +666,26 @@ export default function HomePage() {
                                             <div className="flex justify-center mb-3 gap-3 ">
                                                 <div
                                                     onClick={resetForm}
-                                                    className="inline-block text-xl rounded-lg font-semibold text-white  bg-indigo-600 px-5 py-1 cursor-pointer select-none" >Phiếu
+                                                    className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none" >Phiếu
                                                     mới
                                                 </div>
                                                 <div
                                                     onClick={handleUpdateElectronicScale}
-                                                    className="inline-block text-xl rounded-lg font-semibold text-white  bg-fuchsia-600 px-5 py-1 cursor-pointer select-none">Cập
+                                                    className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none">Cập
                                                     nhật
                                                 </div>
 
                                                 {
-                                                    unLoadedScale > 0 && dateUnLoadedScale !== '' && dateLoadedScale && tare && tare !== undefined && <div
-                                                        onClick={() => complete_electronic_scale(electronic_scale_id)}
-                                                        className="inline-block text-xl rounded-lg font-semibold text-white bg-[#13B42D] px-5 py-1 cursor-pointer select-none">Hoàn
-                                                        thành
-                                                    </div>
+                                                    status === 2 ? (
+                                                        <div
+                                                            onClick={() => complete_electronic_scale(electronic_scale_id)}
+                                                            className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none">Hoàn
+                                                            thành
+                                                        </div>
+                                                    ) : ('')
                                                 }
+
+
                                                 <div
                                                     onClick={() => handlePrint(
                                                         code_scale,
@@ -620,16 +693,18 @@ export default function HomePage() {
                                                         licensePlates,
                                                         productName,
                                                         explain,
-                                                        dateLoadedScale,
-                                                        dateUnLoadedScale,
-                                                        loadedScale,
-                                                        unLoadedScale,
-                                                        tare,
+                                                        dateLoadedScale ? formatDateTime(dateLoadedScale) : '',
+                                                        dateUnLoadedScale ? formatDateTime(dateUnLoadedScale) : '',
+                                                        formatNumber(loadedScale),
+                                                        formatNumber(unLoadedScale),
+                                                        formatNumber(tare),
                                                         purpose_name,
-                                                        total_weight
+                                                        formatNumber(total_weight),
+                                                        dateTare ? formatDateTime(dateTare) : '',
+                                                        userCreated ? userCreated : '',
 
                                                     )}
-                                                    className="inline-block text-xl rounded-lg font-semibold text-white bg-[#6E2323] px-5 py-1 cursor-pointer select-none">In
+                                                    className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none">In
                                                 </div>
 
                                             </div>
@@ -644,28 +719,104 @@ export default function HomePage() {
                             </div>
 
                         </div>
-                      
+
 
 
                         <div className="my-10">
-                            <div className="w-[70%] m-auto">
-                                <div className="border py-1 px-2 rounded flex">
-                                    <input type="search" className={'flex-grow text-sm  text-[#28293D] border-none  focus-visible:outline-none'}
-                                        placeholder={'Nhập tên khách hàng, tên hàng, biển số xe,...'}
-                                        value={key_search}
-                                        onChange={(e) => setKeySearch(e.target.value)}
-                                    />
-                                    <div
-                                        onClick={getDataElectronicScale}
-                                        className="cursor-pointer bg-[#3C5EA7] text-sm text-white font-semibold px-2 py-1 rounded-lg">Tìm
-                                        phiếu
+                            <div className="w-[90%] m-auto flex items-center gap-2">
+                                <div className=" py-1 px-2 rounded flex-grow">
+                                    <div className="grid grid-cols-5 gap-3">
+
+                                        <div className="col-span-2">
+                                            <label htmlFor="name">Nhập</label>
+                                            <input id='name' type="search" className={'flex-grow text-sm  text-[#28293D] border rounded-sm h-[40px]  focus-visible:outline-none px-2  w-full'}
+                                                placeholder={'Nhập tên khách hàng, tên hàng, biển số xe,...'}
+                                                value={key_search}
+                                                onChange={(e) => setKeySearch(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className=''>
+                                            <label htmlFor='status'>Chọn phiếu</label>
+                                            <Select
+                                                id='status'
+                                                placeholder={'Chọn phiếu...'}
+                                                isClearable
+                                                value={keyStatus && keyStatusName ? { value: keyStatus, label: keyStatusName } : { value: keyStatus, label: 'Tất cả phiếu' }}
+                                                options={
+                                                    dataStatus?.map((item) => {
+                                                        return { value: item.status, label: item.status_name }
+                                                    })
+                                                } className={'w-full h-[40px]'} onChange={(e) => {
+                                                    setKeyStatus(e?.value);
+                                                    setKeyStatusName(e?.label);
+                                                }} />
+                                        </div>
+                                        <div className='flex items-center gap-2 col-span-2'>
+                                            <div className="">
+                                                <label htmlFor='date_to'>Từ ngày</label>
+
+                                                <DatePicker
+                                                    id='date_to'
+                                                    selected={date_to}
+
+                                                    onChange={(date) =>
+                                                        setDateTo(date)}
+                                                    dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
+                                                    showYearDropdown
+                                                    showMonthDropdown
+                                                    showTimeSelect
+                                                    timeFormat="HH:mm"
+                                                    timeIntervals={15}
+                                                    dropdownMode="select"
+                                                    locale={vi}
+                                                    className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
+                                                    placeholderText='Ngày bắt đầu...'
+                                                />
+                                            </div>
+                                            <div className="">
+                                                <label htmlFor="date_form">Đến ngày</label>
+                                                <DatePicker
+                                                    id='date_form'
+                                                    selected={date_form}
+                                                    onChange={(date) =>
+                                                        setDateForm(date)}
+                                                    dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
+                                                    showYearDropdown
+                                                    showMonthDropdown
+                                                    showTimeSelect
+                                                    timeFormat="HH:mm"
+                                                    timeIntervals={15}
+                                                    dropdownMode="select"
+                                                    locale={vi}
+                                                    className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
+                                                    placeholderText='Ngày kết thúc...'
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
+                                </div>
+
+
+                            </div>
+                            <div className="flex w-full justify-center mt-3 gap-3">
+                                <div
+                                    onClick={handleCancel}
+                                    className="cursor-pointer bg-red-700 text-sm text-white font-semibold px-2 py-1 rounded-lg ">
+                                    Hủy
+                                </div>
+                                <div
+                                    onClick={() => {
+                                        setElectronic_scale_id('');
+                                        getDataElectronicScale();
+                                    }}
+                                    className="cursor-pointer bg-[#3C5EA7] text-sm text-white font-semibold px-2 py-1 rounded-lg">Tìm
+                                    phiếu
                                 </div>
                             </div>
                         </div>
 
 
-                        <div className="p-5">
+                        <div className="p-5 ">
                             <div className="border rounded">
                                 <div className="text-center py-2 text-[20px] font-semibold text-[#28293D] ">
                                     Danh sách tạm
@@ -673,47 +824,53 @@ export default function HomePage() {
                                 <div className="">
 
                                     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-                                        <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                                        <table className="w-full text-sm text-left rtl:text-right  ">
                                             <thead
                                                 className="text-[#28293D] text-sm  bg-gray-50  ">
                                                 <tr>
-                                                    <th scope="col" className="p-4">
+                                                    <th scope="col" className="">
                                                         {/*<div className="flex items-center">*/}
                                                         {/*    <input id="checkbox-all-search" type="checkbox"*/}
                                                         {/*           className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"/>*/}
                                                         {/*    <label htmlFor="checkbox-all-search" className="sr-only">checkbox</label>*/}
                                                         {/*</div>*/}
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
-                                                        Khách hàng
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
+                                                        Thông tin khách hàng
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
+                                                    {/* <th scope="col" className="px-3 py-3 text-nowrap">
                                                         Tên hàng
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
                                                         Số xe
-                                                    </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
+                                                    </th> */}
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
                                                         KL Có tải
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
                                                         KL Không tải
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
-                                                        KL Hàng
-                                                    </th>
-                                                    <th scope="col" className="px-6 py-3 text-nowrap">
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
                                                         KL Bì
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3">
+                                                    <th scope="col" className="px-3 py-3 text-nowrap">
+                                                        KL Hàng
+                                                    </th>
+
+                                                    {/* <th scope="col" className="px-3 py-3">
                                                         <div className={'text-nowrap'}> Thời gian</div>
                                                         <div className={'text-nowrap'}> cân có tải</div>
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3">
+                                                    <th scope="col" className="px-3 py-3">
                                                         <div className={'text-nowrap'}> Thời gian</div>
                                                         <div className={'text-nowrap'}>không tải</div>
                                                     </th>
-                                                    <th scope="col" className="px-6 py-3">
+                                                    <th scope="col" className="px-3 py-3">
+                                                        <div className={'text-nowrap'}> Thời gian</div>
+                                                        <div className={'text-nowrap'}>cân bì</div>
+                                                    </th> */}
+
+                                                    <th scope="col" className="px-3 py-3">
 
                                                     </th>
                                                 </tr>
@@ -726,93 +883,128 @@ export default function HomePage() {
                                                                 handleDetail(item)
                                                                 setElectronic_scale_id(item.id)
                                                             }}
-                                                            className={`bg-white border-b text-gray-900 dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 `}
+                                                            className={` border-b text-gray-900 bg-gray-100`}
                                                             style={{
-                                                                backgroundColor: item.id === electronic_scale_id ? '#E5D120' : ''
+                                                                backgroundColor: item.id === electronic_scale_id ? '#203DA4' : '',
+                                                                color: item.id === electronic_scale_id ? '#ffff' : ''
                                                             }}>
                                                             <td className="w-4 p-4">
                                                                 <div className="flex items-center">
-                                                                    <input id="checkbox-table-search-1"
-                                                                        type="checkbox"
-                                                                        checked={electronic_scale_id === item?.id}
-                                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />
-                                                                    <label htmlFor="checkbox-table-search-1"
-                                                                        className="sr-only">checkbox</label>
+                                                                    {index + 1}
+
                                                                 </div>
                                                             </td>
-                                                            <th scope="row"
-                                                                className="px-6 py-4 font-medium  whitespace-nowrap dark:text-white">
+                                                            <td scope="row"
+                                                                className="px-3 py-4 font-medium  whitespace-nowrap dark:text-white">
+                                                                <span>Tên KH: </span>
                                                                 {item?.supplier_name}
-                                                            </th>
-                                                            <td className="px-6 py-4">
+                                                                
+                                                                <div className="text-nowrap">
+                                                                    <span>Biển số xe: </span>
+                                                                    {item?.license_plates}
+                                                                </div>
+                                                                <div className="text-nowrap">
+                                                                    <span>Tên hàng: </span>
+                                                                    {item?.product_name}
+                                                                </div>
+
+                                                            </td>
+                                                            {/* <td className="px-3 py-4">
                                                                 <div className="text-nowrap">
                                                                     {item?.product_name}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-6 py-4">
+                                                            <td className="px-3 py-4">
                                                                 <div className="text-nowrap">
                                                                     {item?.license_plates}
                                                                 </div>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                {item?.loaded_scale}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                {item?.unloaded_scale}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                {item?.tare}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                {item?.total_weight}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <div className="text-nowrap">  {item?.date_time_loaded_scale}</div>
-                                                            </td>
-                                                            <td className='px-6 py-4'>
-                                                                <div className="text-nowrap">  {item?.date_time_unloaded_scale}</div>
-                                                            </td>
-                                                            <td className="flex items-center px-6 py-4">
+                                                            </td> */}
+                                                            <td className="px-3 py-4 text-nowrap text-end">
+                                                                {item?.loaded_scale ? formatNumber(item.loaded_scale) : 0} kg
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_loaded_scale ? formatDateTime(item.date_time_loaded_scale) : ''}
+                                                                </div>
 
-                                                                {item?.unloaded_scale <= 0 ?
-                                                                    (
-                                                                        <div className="w-full text-center">
-                                                                            <div
-                                                                                className="bg-[#E5D120] text-white font-bold  text-nowrap px-2 py rounded text-xs cursor-pointer">Lưu
-                                                                                tạm
-                                                                            </div>
-                                                                        </div>
+                                                            </td>
+                                                            <td className="px-3 py-4 text-nowrap text-end">
+                                                                {item?.unloaded_scale ? formatNumber(item.unloaded_scale) : 0} kg
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_unloaded_scale ? formatDateTime(item.date_time_unloaded_scale) : ''}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-4 text-nowrap text-end">
+                                                                {item.tare ? item.tare : 0} kg
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_tare ? formatDateTime(item.date_time_tare) : ''}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-4 text-nowrap text-end">
+                                                                {item.total_weight ? formatNumber(item.total_weight) : 0} kg
+                                                            </td>
+                                                            {/* <td className="px-3 py-4">
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_loaded_scale ? formatDateTime(item.date_time_loaded_scale) : ''}
+                                                                </div>
+                                                            </td>
+                                                            <td className='px-3 py-4'>
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_unloaded_scale ? formatDateTime(item.date_time_unloaded_scale) : ''}
+                                                                </div>
+                                                            </td>
+                                                            <td className='px-3 py-4'>
+                                                                <div className="text-nowrap">
+                                                                    {item?.date_time_tare ? formatDateTime(item.date_time_tare) : ''}
+                                                                </div>
+                                                            </td> */}
 
+                                                            <td className=" px-3 py-4">
 
-                                                                    ) : (
-                                                                        <div className="">
-                                                                            <div
+                                                                <div className='flex items-center'>
+                                                                    {item?.status === 1 ?
+                                                                        (
+                                                                            <div className="w-full text-center">
+                                                                                <div
+                                                                                    className="bg-[#E5D120] text-white font-bold  text-nowrap px-2 py rounded text-xs cursor-not-allowed">Lưu
+                                                                                    tạm
+                                                                                </div>
+                                                                                {/* <div
                                                                                 onClick={() => complete_electronic_scale(item?.id)}
-                                                                                className="bg-[#13B42D] text-white font-bold  text-nowrap px-2 py rounded text-xs cursor-pointer text-center">Hoàn
+                                                                                className="bg-[#13B42D] text-white font-bold  text-nowrap px-2 py rounded text-xs cursor-pointer text-center mt-2">Hoàn
                                                                                 thành
+                                                                            </div> */}
                                                                             </div>
-                                                                            <div
-                                                                                onClick={() => handlePrint(
-                                                                                    item?.code_scale,
-                                                                                    item?.supplier_name,
-                                                                                    item?.license_plates,
-                                                                                    item?.product_name,
-                                                                                    item?.explain,
-                                                                                    item?.date_time_loaded_scale,
-                                                                                    item?.date_time_unloaded_scale,
-                                                                                    item?.loaded_scale,
-                                                                                    item?.unloaded_scale,
-                                                                                    item?.tare,
-                                                                                    item?.purpose_name,
-                                                                                    item?.total_weight
-                                                                                )}
-                                                                                className="bg-[#6E2323] text-white font-bold text-nowrap px-2  rounded text-xs cursor-pointer mt-1 text-center">In
+                                                                        ) : (
+                                                                            <div className="w-full">
+                                                                                <div
+                                                                                    onClick={() => complete_electronic_scale(item?.id)}
+                                                                                    className="bg-[#13B42D] text-white font-bold  text-nowrap px-2 py rounded text-xs cursor-pointer text-center">Hoàn
+                                                                                    thành
+                                                                                </div>
+                                                                                <div
+                                                                                    onClick={() => handlePrint(
+                                                                                        item?.code_scale,
+                                                                                        item?.supplier_name,
+                                                                                        item?.license_plates,
+                                                                                        item?.product_name,
+                                                                                        item?.explain,
+                                                                                        item?.date_time_loaded_scale ? formatDateTime(item?.date_time_loaded_scale) : '',
+                                                                                        item?.date_time_unloaded_scale ? formatDateTime(item?.date_time_unloaded_scale) : "",
+                                                                                        formatNumber(item?.loaded_scale),
+                                                                                        formatNumber(item?.unloaded_scale),
+                                                                                        formatNumber(item?.tare),
+                                                                                        item?.purpose_name,
+                                                                                        formatNumber(item?.total_weight),
+                                                                                        item?.date_time_tare ? formatDateTime(item?.date_time_tare) : "",
+                                                                                        item?.user_created ? item?.user_created : '',
+                                                                                    )}
+                                                                                    className="bg-[#6E2323] text-white font-bold text-nowrap px-2  rounded text-xs cursor-pointer mt-1 text-center w-full">In
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
 
-                                                                    )
-                                                                }
+                                                                        )
+                                                                    }
 
+                                                                </div>
 
                                                             </td>
                                                         </tr>
@@ -828,7 +1020,7 @@ export default function HomePage() {
                             </div>
                             <div className="">
                                 <div
-                                    className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+                                    className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-3">
                                     <div className="flex flex-1 justify-between sm:hidden">
                                         <a
                                             href="#"

@@ -9,4 +9,5 @@ files:
     filter:
       - package.json
       - app
+      - webpack.config.js
 publish: null

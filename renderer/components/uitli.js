@@ -30,9 +30,9 @@ const Toast = ({ type, message }) => {
         });
     }
 };
- const formatDateTime = (isoString) => {
-    const date = new Date(isoString);
+const formatDateTime = (isoString) => {
 
+    const date = new Date(isoString);
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
@@ -40,7 +40,7 @@ const Toast = ({ type, message }) => {
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
     const year = date.getFullYear();
 
-    return `${hours}:${minutes}:${seconds} </br> ${day}/${month}/${year}`;
+    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
 };
 
 function calculate(loadedScale, unLoadedScale, tare) {
@@ -48,8 +48,12 @@ function calculate(loadedScale, unLoadedScale, tare) {
     const adjustedUnLoadedScale = unLoadedScale ?? 0;
     const adjustedTare = tare ?? 0;
     const result = adjustedLoadedScale > adjustedUnLoadedScale ? (adjustedLoadedScale - adjustedUnLoadedScale - adjustedTare) : 0;
+    // const result = adjustedLoadedScale - adjustedUnLoadedScale - adjustedTare;
     return result;
+}
+function formatNumber(number) {
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 
-export  {Toast,formatDateTime,calculate}
+export  {Toast,formatDateTime,calculate,formatNumber}
