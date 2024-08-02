@@ -80,7 +80,7 @@ const tryConnectSerialPort = async (path, baudRate, interval = 1000) => {
     serialPort.on('data', (data) => {
       const dataStr = data.toString().match(/\d+/g).join("");
       mainWindow.webContents.send('serial-data', dataStr);
-      console.log('Data:', dataStr);
+      // console.log('Data:', dataStr);
     });
   } else {
     mainWindow.focus();

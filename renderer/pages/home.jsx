@@ -45,6 +45,61 @@ export default function HomePage() {
     const [keyStatusName, setKeyStatusName] = useState('');
     const [date_to, setDateTo] = useState();
     const [date_form, setDateForm] = useState();
+    const [error_message, setErrorMessage] = useState({
+        licensePlatesError: true,
+        licensePlatesMessage: '',
+        customerNameError: true,
+        customerNameMessage: '',
+        productNameError: true,
+        productNameMessage: '',
+    })
+    const checkErrorMessage = (licensePlates, customer, product_name) => {
+        let isValid = true;
+
+        if (licensePlates === '') {
+            setErrorMessage(prevState => ({ ...prevState, licensePlatesError: true, licensePlatesMessage: 'Vui lòng nhập biển số xe' }));
+            isValid = false;
+        } else {
+            setErrorMessage(prevState => ({ ...prevState, licensePlatesError: false, licensePlatesMessage: '' }));
+        }
+
+        if (customer === '') {
+            setErrorMessage(prevState => ({ ...prevState, customerNameError: true, customerNameMessage: 'Vui lòng chọn khách hàng' }));
+            isValid = false;
+        } else {
+            setErrorMessage(prevState => ({ ...prevState, customerNameError: false, customerNameMessage: '' }));
+        }
+
+        if (product_name === '') {
+            setErrorMessage(prevState => ({ ...prevState, productNameError: true, productNameMessage: 'Vui lòng nhập tên hàng' }));
+            isValid = false;
+        } else {
+            setErrorMessage(prevState => ({ ...prevState, productNameError: false, productNameMessage: '' }));
+        }
+
+        return isValid;
+    }
+
+    const handleChangeErrorMessage = (name, value, message, keyError, keyMessage) => {
+        if (value === '' && value === undefined && value === null) {
+            setErrorMessage(prevState => ({ ...prevState, [keyError]: false, [keyMessage]: message }));
+        } else {
+            setErrorMessage(prevState => ({ ...prevState, [keyError]: true, [keyMessage]: '' }));
+        }
+    }
+
+    const resetErrorMessage = () => {
+        setErrorMessage({
+            licensePlatesError: false,
+            licensePlatesMessage: '',
+            customerNameError: false,
+            customerNameMessage: '',
+            productNameError: false,
+            productNameMessage: '',
+        })
+    }
+
+
 
 
     useEffect(() => {
@@ -92,7 +147,7 @@ export default function HomePage() {
                 token: token,
                 data: {
                     page: page,
-                    key_search: key_search ,
+                    key_search: key_search,
                     status: keyStatus,
                     date_to: date_to ? format(date_to, 'dd/MM/yyyy HH:mm') : '',
                     date_form: date_form ? format(date_form, 'dd/MM/yyyy HH:mm') : '',
@@ -134,6 +189,10 @@ export default function HomePage() {
 
 
     const handleStoreElectronicScale = async () => {
+
+        if (!checkErrorMessage(licensePlates, customerName, productName)) {
+            return;
+        }
         if (loadedScale === '' || unLoadedScale === '') {
             Toast({ type: 'warning', message: 'Vui lòng nhập đủ thông tin!' })
             console.log(loadedScale, unLoadedScale);
@@ -185,6 +244,7 @@ export default function HomePage() {
             Toast({ type: 'warning', message: 'Vui lòng nhập đủ thông tin!' })
             return;
         }
+        checkErrorMessage(licensePlates, customerName, productName)
         setLoading(true);
         try {
 
@@ -463,8 +523,13 @@ export default function HomePage() {
 
                                                         <td className='py-1'>
                                                             <input type="text" value={licensePlates}
-                                                                onChange={(e) => setLicensePlates(e.target.value)}
+
+                                                                onChange={(e) => {
+                                                                    setLicensePlates(e.target.value),
+                                                                        handleChangeErrorMessage('licensePlates', e.target.value, 'Vui lòng nhập biển số xe', 'licensePlatesError', 'licensePlatesMessage')
+                                                                }}
                                                                 className={'mt-2 h-[36px] w-full border text-center py-2 rounded text-sm font-bold text-[#5C64D0]'} />
+                                                            <div className='text-red-600 text-base font-medium'>{error_message.licensePlatesError ? error_message.licensePlatesMessage : ""}</div>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -482,7 +547,11 @@ export default function HomePage() {
                                                                         return { value: item.name, label: item.name }
                                                                     })
 
-                                                                } className={'w-full h-[40px] mt-2'} onChange={handleCustomerChange} />
+                                                                } className={'w-full h-[40px] mt-2'} onChange={(e) => {
+                                                                    handleCustomerChange(e)
+                                                                    handleChangeErrorMessage('customerName', e?.value, 'Vui lòng chọn khách hàng', 'customerNameError', 'customerNameMessage')
+                                                                }} />
+                                                            <div className='text-red-600 text-base font-medium'>{error_message.customerNameError ? error_message.customerNameMessage : ""}</div>
                                                         </td>
                                                     </tr>
 
@@ -519,8 +588,12 @@ export default function HomePage() {
                                                         <td className='py-1'>
                                                             <input type="text"
                                                                 value={productName}
-                                                                onChange={(e) => setProductName(e.target.value)}
+                                                                onChange={(e) => {
+                                                                    setProductName(e.target.value);
+                                                                    handleChangeErrorMessage('productName', e.target.value, 'Vui lòng nhập tên hàng', 'productNameError', 'productNameMessage')
+                                                                }}
                                                                 className={'mt-2 border h-[36px] text-center py-2 rounded text-sm font-bold text-[#5C64D0] w-full'} />
+                                                            <div className='text-red-600 text-base font-medium'>{error_message.productNameError ? error_message.productNameMessage : ""}</div>
                                                         </td>
                                                     </tr>
 
@@ -653,7 +726,9 @@ export default function HomePage() {
                                             <div className="flex justify-center mb-3 gap-3">
                                                 <div
                                                     className="inline-block text-xl rounded-lg font-semibold text-[#28293D] bg-gray-200 px-5 py-1 cursor-pointer select-none"
-                                                    onClick={resetForm}>Phiếu mới
+                                                    onClick={() => {
+                                                        resetForm(), resetErrorMessage()
+                                                    }}>Phiếu mới
                                                 </div>
                                                 <div
                                                     onClick={handleStoreElectronicScale}
@@ -898,7 +973,7 @@ export default function HomePage() {
                                                                 className="px-3 py-4 font-medium  whitespace-nowrap dark:text-white">
                                                                 <span>Tên KH: </span>
                                                                 {item?.supplier_name}
-                                                                
+
                                                                 <div className="text-nowrap">
                                                                     <span>Biển số xe: </span>
                                                                     {item?.license_plates}
