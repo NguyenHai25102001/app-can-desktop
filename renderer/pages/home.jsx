@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Head from 'next/head';
 import { apis, request_url } from "../components/apis";
 import CreatableSelect from 'react-select/creatable';
 import Link from "next/link";
-import { calculate, formatDateTime, formatNumber, Toast } from "../components/uitli";
+import { calculate, dataStatus, formatDateTime, formatNumber, Toast } from "../components/uitli";
 import Load from '../components/load';
 import Select from 'react-select';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { vi } from 'date-fns/locale';
 import { format } from 'date-fns';
-
 
 
 export default function HomePage() {
@@ -99,16 +98,12 @@ export default function HomePage() {
         })
     }
 
-
-
-
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const token = sessionStorage.getItem('token_customer');
-            if (token) {
-                setToken(token);
-            }
-        }
+        const fetchToken = async () => {
+            const token = await window.ipc.invoke('get-token');
+            setToken(token);
+        };
+        fetchToken();
     }, [token]);
 
 
@@ -165,11 +160,13 @@ export default function HomePage() {
 
 
     useEffect(() => {
-        getDataListCustomer();
-    }, [token]);
+        getDataElectronicScale();
+    }, [page]);
+
     useEffect(() => {
-        getDataElectronicScale(page);
-    }, [page, token]);
+        getDataElectronicScale();
+        setPage(1)
+    }, [token, key_search, date_form, date_to, keyStatus]);
 
     useEffect(() => {
         window.ipc.onSerialData((data) => {
@@ -275,7 +272,7 @@ export default function HomePage() {
                 handleDetail(res?.data);
                 getDataListCustomer();
                 getDataElectronicScale(1);
-                // Toast({ type: 'success', message: 'Cập nhật phiếu lưu tạm thành công!' })
+                Toast({ type: 'success', message: 'Cập nhật phiếu lưu tạm thành công!' })
             } else {
                 console.log(res)
                 Toast({ type: 'error', message: 'Cập nhật phiếu lưu tạm thất bại!' })
@@ -391,6 +388,9 @@ export default function HomePage() {
         };
         window.ipc.send('print-details', details);
     };
+    const handleOpenListData = () => {
+        window.ipc.send('open-list-data-window');
+    };
 
     const handleCancel = () => {
         setElectronic_scale_id('');
@@ -416,31 +416,14 @@ export default function HomePage() {
             purpose_name: 'DỊCH VỤ'
         }
     ];
-    const dataStatus = [
-        {
-            status: '',
-            status_name: 'Tất cả'
 
-        },
-        {
-            status: 1,
-            status_name: 'Chưa hoàn thành'
-        },
-        {
-            status: 2,
-            status_name: 'Hoàn thành'
-        }
-    ];
 
 
 
     return (
         <React.Fragment>
             {
-                loading ? (
-                    <Load />
-
-                ) : (
+               
                     <React.Fragment>
                         <Head>
                             <title>Phần mềm cân WinGroup (tel:0354583367)</title>
@@ -795,14 +778,12 @@ export default function HomePage() {
 
                         </div>
 
-
-
-                        <div className="my-10">
-                            <div className="w-[90%] m-auto flex items-center gap-2">
+                        <div className="">
+                            <div className="w-[100%] m-auto flex items-center gap-2  px-2 mt-5">
                                 <div className=" py-1 px-2 rounded flex-grow">
-                                    <div className="grid grid-cols-5 gap-3">
+                                    <div className="grid grid-cols-5 gap-3 text-base">
 
-                                        <div className="col-span-2">
+                                        <div className="">
                                             <label htmlFor="name">Nhập</label>
                                             <input id='name' type="search" className={'flex-grow text-sm  text-[#28293D] border rounded-sm h-[40px]  focus-visible:outline-none px-2  w-full'}
                                                 placeholder={'Nhập tên khách hàng, tên hàng, biển số xe,...'}
@@ -826,46 +807,64 @@ export default function HomePage() {
                                                     setKeyStatusName(e?.label);
                                                 }} />
                                         </div>
-                                        <div className='flex items-center gap-2 col-span-2'>
-                                            <div className="">
-                                                <label htmlFor='date_to'>Từ ngày</label>
+                                        <div className=''>
+                                            <label htmlFor='date_to' className='block'>Từ ngày</label>
 
-                                                <DatePicker
-                                                    id='date_to'
-                                                    selected={date_to}
+                                            <DatePicker
+                                                id='date_to'
+                                                selected={date_to}
 
-                                                    onChange={(date) =>
-                                                        setDateTo(date)}
-                                                    dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
-                                                    showYearDropdown
-                                                    showMonthDropdown
-                                                    showTimeSelect
-                                                    timeFormat="HH:mm"
-                                                    timeIntervals={15}
-                                                    dropdownMode="select"
-                                                    locale={vi}
-                                                    className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
-                                                    placeholderText='Ngày bắt đầu...'
-                                                />
-                                            </div>
-                                            <div className="">
-                                                <label htmlFor="date_form">Đến ngày</label>
-                                                <DatePicker
-                                                    id='date_form'
-                                                    selected={date_form}
-                                                    onChange={(date) =>
-                                                        setDateForm(date)}
-                                                    dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
-                                                    showYearDropdown
-                                                    showMonthDropdown
-                                                    showTimeSelect
-                                                    timeFormat="HH:mm"
-                                                    timeIntervals={15}
-                                                    dropdownMode="select"
-                                                    locale={vi}
-                                                    className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
-                                                    placeholderText='Ngày kết thúc...'
-                                                />
+                                                onChange={(date) =>
+                                                    setDateTo(date)}
+                                                dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
+                                                showYearDropdown
+                                                showMonthDropdown
+                                                showTimeSelect
+                                                timeFormat="HH:mm"
+                                                timeIntervals={15}
+                                                dropdownMode="select"
+                                                locale={vi}
+                                                className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
+                                                placeholderText='Ngày bắt đầu...'
+                                            />
+
+                                        </div>
+                                        <div className=''>
+
+                                            <label htmlFor="date_form" className='block'>Đến ngày</label>
+                                            <DatePicker
+                                                id='date_form'
+                                                selected={date_form}
+                                                onChange={(date) =>
+                                                    setDateForm(date)}
+                                                dateFormat="dd/MM/yyyy 'Giờ:' HH:mm"
+                                                showYearDropdown
+                                                showMonthDropdown
+                                                showTimeSelect
+                                                timeFormat="HH:mm"
+                                                timeIntervals={15}
+                                                dropdownMode="select"
+                                                locale={vi}
+                                                className='border rounded-sm text-sm text-[#28293D] h-[40px] px-2 focus-visible:outline-none w-full'
+                                                placeholderText='Ngày kết thúc...'
+                                            />
+                                        </div>
+                                        <div className="">
+                                            <div className="flex  justify-center items-center h-full mt-3 gap-1">
+                                                <div
+                                                    onClick={handleCancel}
+                                                    className="cursor-pointer bg-red-700 text-xl text-white font-semibold px-2 py-1 rounded-lg ">
+                                                    Hủy
+                                                </div>
+                                                <div
+                                                    onClick={() => {
+                                                        setElectronic_scale_id('');
+                                                        getDataElectronicScale();
+                                                    }}
+                                                    className="cursor-pointer bg-[#3C5EA7] text-xl text-white font-semibold px-2 py-1 rounded-lg">Tìm
+                                                    phiếu
+                                                </div>
+
                                             </div>
                                         </div>
                                     </div>
@@ -873,35 +872,23 @@ export default function HomePage() {
 
 
                             </div>
-                            <div className="flex w-full justify-center mt-3 gap-3">
-                                <div
-                                    onClick={handleCancel}
-                                    className="cursor-pointer bg-red-700 text-sm text-white font-semibold px-2 py-1 rounded-lg ">
-                                    Hủy
-                                </div>
-                                <div
-                                    onClick={() => {
-                                        setElectronic_scale_id('');
-                                        getDataElectronicScale();
-                                    }}
-                                    className="cursor-pointer bg-[#3C5EA7] text-sm text-white font-semibold px-2 py-1 rounded-lg">Tìm
-                                    phiếu
-                                </div>
-                            </div>
+
                         </div>
 
 
-                        <div className="p-5 ">
-                            <div className="border rounded">
+                        <div className="p-5">
+
+                            <div className="border rounded ">
+
                                 <div className="text-center py-2 text-[20px] font-semibold text-[#28293D] ">
                                     Danh sách tạm
                                 </div>
                                 <div className="">
 
-                                    <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+                                    <div className=" overflow-x-auto shadow-md sm:rounded-lg">
                                         <table className="w-full text-sm text-left rtl:text-right  ">
                                             <thead
-                                                className="text-[#28293D] text-sm  bg-gray-50  ">
+                                                className="text-[#28293D] text-xl  bg-gray-50  ">
                                                 <tr>
                                                     <th scope="col" className="">
                                                         {/*<div className="flex items-center">*/}
@@ -919,17 +906,17 @@ export default function HomePage() {
                                                     <th scope="col" className="px-3 py-3 text-nowrap">
                                                         Số xe
                                                     </th> */}
-                                                    <th scope="col" className="px-3 py-3 text-nowrap">
-                                                        KL Có tải
+                                                    <th scope="col" className="px-3 py-3 text-nowrap text-end">
+                                                        Cân có tải
                                                     </th>
-                                                    <th scope="col" className="px-3 py-3 text-nowrap">
-                                                        KL Không tải
+                                                    <th scope="col" className="px-3 py-3 text-nowrap text-end">
+                                                        Cân không tải
                                                     </th>
-                                                    <th scope="col" className="px-3 py-3 text-nowrap">
-                                                        KL Bì
+                                                    <th scope="col" className="px-3 py-3 text-nowrap text-end">
+                                                        Khối lượng bì
                                                     </th>
-                                                    <th scope="col" className="px-3 py-3 text-nowrap">
-                                                        KL Hàng
+                                                    <th scope="col" className="px-3 py-3 text-nowrap text-end">
+                                                        Khối lượng Hàng
                                                     </th>
 
                                                     {/* <th scope="col" className="px-3 py-3">
@@ -950,7 +937,7 @@ export default function HomePage() {
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody className='text-base'>
                                                 {
                                                     listElectronicScale?.map((item, index) => (
                                                         <tr key={index}
@@ -963,7 +950,7 @@ export default function HomePage() {
                                                                 backgroundColor: item.id === electronic_scale_id ? '#203DA4' : '',
                                                                 color: item.id === electronic_scale_id ? '#ffff' : ''
                                                             }}>
-                                                            <td className="w-4 p-4">
+                                                            <td className="w-4 p-2">
                                                                 <div className="flex items-center">
                                                                     {index + 1}
 
@@ -995,26 +982,26 @@ export default function HomePage() {
                                                                 </div>
                                                             </td> */}
                                                             <td className="px-3 py-4 text-nowrap text-end">
-                                                                {item?.loaded_scale ? formatNumber(item.loaded_scale) : 0} kg
+                                                                <div className='font-bold text-xl'> {item?.loaded_scale ? formatNumber(item.loaded_scale) : 0} kg</div>
                                                                 <div className="text-nowrap">
                                                                     {item?.date_time_loaded_scale ? formatDateTime(item.date_time_loaded_scale) : ''}
                                                                 </div>
 
                                                             </td>
                                                             <td className="px-3 py-4 text-nowrap text-end">
-                                                                {item?.unloaded_scale ? formatNumber(item.unloaded_scale) : 0} kg
+                                                                <div className='font-bold text-xl'> {item?.unloaded_scale ? formatNumber(item.unloaded_scale) : 0} kg</div>
                                                                 <div className="text-nowrap">
                                                                     {item?.date_time_unloaded_scale ? formatDateTime(item.date_time_unloaded_scale) : ''}
                                                                 </div>
                                                             </td>
                                                             <td className="px-3 py-4 text-nowrap text-end">
-                                                                {item.tare ? item.tare : 0} kg
+                                                                <div className='font-bold text-xl'> {item.tare ? item.tare : 0} kg</div>
                                                                 <div className="text-nowrap">
                                                                     {item?.date_time_tare ? formatDateTime(item.date_time_tare) : ''}
                                                                 </div>
                                                             </td>
                                                             <td className="px-3 py-4 text-nowrap text-end">
-                                                                {item.total_weight ? formatNumber(item.total_weight) : 0} kg
+                                                                <div className='font-bold text-xl'>  {item.total_weight ? formatNumber(item.total_weight) : 0} kg</div>
                                                             </td>
                                                             {/* <td className="px-3 py-4">
                                                                 <div className="text-nowrap">
@@ -1143,7 +1130,12 @@ export default function HomePage() {
                                                         <div
                                                             key={index}
                                                             onClick={() => setPage(item)}
+                                                            style={{
+                                                                backgroundColor: item === page ? '#203DA4' : '',
+                                                                color: item === page ? '#ffff' : ''
+                                                            }}
                                                             className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+
                                                         >
                                                             {item}
                                                         </div>
@@ -1180,8 +1172,8 @@ export default function HomePage() {
 
                         <div className="py-14"></div>
 
+
                     </React.Fragment>
-                )
             }
 
 

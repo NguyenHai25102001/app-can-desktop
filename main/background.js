@@ -1,17 +1,17 @@
-import path from 'path';
-import { app, BrowserWindow, ipcMain } from 'electron';
-import serve from 'electron-serve';
-import { createWindow } from './helpers';
-const { SerialPort } = require('serialport');
+import path from "path";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
+import serve from "electron-serve";
+import { createWindow } from "./helpers";
+const { SerialPort } = require("serialport");
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = process.env.NODE_ENV === "production";
 
 if (isProd) {
-  serve({ directory: 'app' });
+  serve({ directory: "app" });
 } else {
-  app.setPath('userData', `${app.getPath('userData')} (development)`);
+  app.setPath("userData", `${app.getPath("userData")} (development)`);
 }
-
+global.token = null;
 let mainWindow;
 
 const connectSerialPort = (path, baudRate) => {
@@ -33,8 +33,10 @@ const tryConnectSerialPort = async (path, baudRate, interval = 1000) => {
       console.log(`Connected to ${path}`);
       return serialPort;
     } catch (err) {
-      console.error(`Failed to connect to ${path}: ${err.message}. Retrying in ${interval}ms...`);
-      await new Promise(resolve => setTimeout(resolve, interval));
+      console.error(
+        `Failed to connect to ${path}: ${err.message}. Retrying in ${interval}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, interval));
     }
   }
 };
@@ -43,31 +45,31 @@ const tryConnectSerialPort = async (path, baudRate, interval = 1000) => {
   await app.whenReady();
 
   if (!mainWindow) {
-    mainWindow = createWindow('main', {
+    const { height } = screen.getPrimaryDisplay().workAreaSize;
+    mainWindow = createWindow("main", {
       width: 1200,
-      height: 700,
+      height: height,
       webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        icon: path.join(__dirname, 'icon.ico')
+        preload: path.join(__dirname, "preload.js"),
+        icon: path.join(__dirname, "icon.ico"),
       },
     });
- app.commandLine.appendSwitch('disable-software-rasterizer');
-  app.commandLine.appendSwitch('disable-gpu');
-  app.commandLine.appendSwitch('disable-plugins');
-  app.commandLine.appendSwitch('disable-extensions');
-  app.commandLine.appendSwitch('disable-webgl');
-  app.commandLine.appendSwitch('disable-image-capture');
-  app.commandLine.appendSwitch('disable-media-stream');
-  app.commandLine.appendSwitch('disable-features', 'VRDisplay,VRLayer');
-  app.commandLine.appendSwitch('disable-webrtc');
-  app.commandLine.appendSwitch('remote-debugging-port', '0');
-  app.commandLine.appendSwitch('no-update');
-
+    app.commandLine.appendSwitch("disable-software-rasterizer");
+    app.commandLine.appendSwitch("disable-gpu");
+    app.commandLine.appendSwitch("disable-plugins");
+    app.commandLine.appendSwitch("disable-extensions");
+    app.commandLine.appendSwitch("disable-webgl");
+    app.commandLine.appendSwitch("disable-image-capture");
+    app.commandLine.appendSwitch("disable-media-stream");
+    app.commandLine.appendSwitch("disable-features", "VRDisplay,VRLayer");
+    app.commandLine.appendSwitch("disable-webrtc");
+    app.commandLine.appendSwitch("remote-debugging-port", "0");
+    app.commandLine.appendSwitch("no-update");
 
     mainWindow.setMenu(null); // Loại bỏ menu
 
     if (isProd) {
-      await mainWindow.loadURL('app://./login');
+      await mainWindow.loadURL("app://./login");
     } else {
       const port = process.argv[2];
       await mainWindow.loadURL(`http://localhost:${port}/login`);
@@ -75,11 +77,11 @@ const tryConnectSerialPort = async (path, baudRate, interval = 1000) => {
     }
 
     // Cấu hình SerialPort
-    const serialPort = await tryConnectSerialPort('COM1', 9600);
+    const serialPort = await tryConnectSerialPort("COM1", 9600);
 
-    serialPort.on('data', (data) => {
+    serialPort.on("data", (data) => {
       const dataStr = data.toString().match(/\d+/g).join("");
-      mainWindow.webContents.send('serial-data', dataStr);
+      mainWindow.webContents.send("serial-data", dataStr);
       // console.log('Data:', dataStr);
     });
   } else {
@@ -87,18 +89,51 @@ const tryConnectSerialPort = async (path, baudRate, interval = 1000) => {
   }
 })();
 
-app.on('window-all-closed', () => {
+app.on("window-all-closed", () => {
   mainWindow = null;
   app.quit();
 });
 
+ipcMain.on("open-list-data-window", () => {
+  const { height } = screen.getPrimaryDisplay().workAreaSize;
+  const listDataWindow = createWindow("list-data", {
+    width: 1200,
+    height: height,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      icon: path.join(__dirname, "icon.ico"),
+    },
+  });
+  listDataWindow.setMenu(null); // Loại bỏ menu
 
-ipcMain.on('message', (event, arg) => {
-  event.reply('message', `${arg} World!`);
+  if (isProd) {
+    listDataWindow.loadURL("app://./list-data").catch((err) => {
+      console.error("Failed to load URL in production:", err);
+    });
+  } else {
+    const port = process.argv[2];
+    listDataWindow
+      .loadURL(`http://localhost:${port}/list-data`)
+      .catch((err) => {
+        console.error("Failed to load URL in development:", err);
+      });
+    listDataWindow.webContents.openDevTools();
+  }
 });
 
-ipcMain.on('print-details', async (event, details) => {
-  console.log('Printing details', details);
+ipcMain.on("update-token", (event, newToken) => {
+  global.token = newToken;
+  console.log("Updated token:", newToken);
+});
+ipcMain.on("message", (event, arg) => {
+  event.reply("message", `${arg} World!`);
+});
+ipcMain.handle("get-token", () => {
+  return global.token;
+});
+
+ipcMain.on("print-details", async (event, details) => {
+  console.log("Printing details", details);
 
   try {
     // Tạo nội dung HTML từ dữ liệu details
@@ -169,15 +204,19 @@ ipcMain.on('print-details', async (event, details) => {
               </div>
               <div style="display: flex; margin-top: 8px;">
                   <div style="font-weight: 600; display: flex; align-items: center; width: 150px;">Khách hàng:</div>
-                  <div>${details.customerName ?? ''}</div>
+                  <div>${details.customerName ?? ""}</div>
               </div>
               <div style="font-weight: 600; display: flex; align-items: center; margin-top: 0.5rem;">
                   <div style="width: 150px;">Số phiếu:</div>
-                  <div style="font-weight: 600; font-size: 20px;">${details.code_scale ?? ''} <span style="margin-left: 1rem;">(${details.userCreated})</span></div>
+                  <div style="font-weight: 600; font-size: 20px;">${
+                    details.code_scale ?? ""
+                  } <span style="margin-left: 1rem;">(${
+      details.userCreated
+    })</span></div>
               </div>
               <div style="display: flex; margin-top: 8px;">
                   <div style="font-weight: 600; display: flex; align-items: center; width: 150px;">Ghi chú:</div>
-                  <div>${details.explain ?? ''}</div>
+                  <div>${details.explain ?? ""}</div>
               </div>
               <div style="margin-top: 28px;">
                   <table>
@@ -185,13 +224,17 @@ ipcMain.on('print-details', async (event, details) => {
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 150px">Biển số xe:</div>
-                                  <div style="font-weight: 600;">${details.licensePlates ?? ''}</div>
+                                  <div style="font-weight: 600;">${
+                                    details.licensePlates ?? ""
+                                  }</div>
                               </div>
                           </td>
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 100px">Tên hàng:</div>
-                                  <div style="font-weight: 600">${details.productName ?? ''}</div>
+                                  <div style="font-weight: 600">${
+                                    details.productName ?? ""
+                                  }</div>
                               </div>
                           </td>
                       </tr>
@@ -199,13 +242,17 @@ ipcMain.on('print-details', async (event, details) => {
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 150px">Giờ cân có tải:</div>
-                                  <div style="font-weight: 600;">${details.dateLoadedScale ?? ''}</div>
+                                  <div style="font-weight: 600;">${
+                                    details.dateLoadedScale ?? ""
+                                  }</div>
                               </div>
                           </td>
                           <td>
                               <div style="display: flex; align-items: end;">
                                   <div style="width: 200px">Trọng lượng hàng và xe:</div>
-                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${details.loadedScale ?? ''}</div>
+                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${
+                                    details.loadedScale ?? ""
+                                  }</div>
                                   <div style="margin-left: 4px; font-weight: 600;">Kg</div>
                               </div>
                           </td>
@@ -214,13 +261,17 @@ ipcMain.on('print-details', async (event, details) => {
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 150px">Giờ cân không tải:</div>
-                                  <div style="font-weight: 600;">${details.dateUnLoadedScale ?? ''}</div>
+                                  <div style="font-weight: 600;">${
+                                    details.dateUnLoadedScale ?? ""
+                                  }</div>
                               </div>
                           </td>
                           <td>
                               <div style="display: flex; align-items: end;">
                                   <div style="width: 200px">Trọng lượng xe:</div>
-                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${details.unloadedScale ?? ''}</div>
+                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${
+                                    details.unloadedScale ?? ""
+                                  }</div>
                                   <div style="margin-left: 4px; font-weight: 600;">Kg</div>
                               </div>
                           </td>
@@ -229,13 +280,17 @@ ipcMain.on('print-details', async (event, details) => {
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 150px">Giờ cân trừ bì:</div>
-                                  <div style="font-weight: 600;">${details.dateTare ?? ''}</div>
+                                  <div style="font-weight: 600;">${
+                                    details.dateTare ?? ""
+                                  }</div>
                               </div>
                           </td>
                           <td>
                               <div style="display: flex; align-items: end;">
                                   <div style="width: 200px">Trừ bì:</div>
-                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${details.tare ?? ''}</div>
+                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${
+                                    details.tare ?? ""
+                                  }</div>
                                   <div style="margin-left: 4px; font-weight: 600;">Kg</div>
                               </div>
                           </td>
@@ -244,13 +299,17 @@ ipcMain.on('print-details', async (event, details) => {
                           <td>
                               <div style="display: flex;">
                                   <div style="width: 150px">Trạng thái:</div>
-                                  <div style="font-weight: 600;">${details.purpose_name ?? ''}</div>
+                                  <div style="font-weight: 600;">${
+                                    details.purpose_name ?? ""
+                                  }</div>
                               </div>
                           </td>
                           <td>
                               <div style="display: flex; align-items: end;">
                                   <div style="width: 200px">Trọng lượng hàng:</div>
-                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${details.total_weight ?? ''}</div>
+                                  <div style="font-weight: 600; width: 80px; text-align: end; font-size: 22px;">${
+                                    details.total_weight ?? ""
+                                  }</div>
                                   <div style="margin-left: 4px; font-weight: 600;">Kg</div>
                               </div>
                           </td>
@@ -272,22 +331,30 @@ ipcMain.on('print-details', async (event, details) => {
     const win = new BrowserWindow({ show: false });
 
     // Tải HTML vào cửa sổ
-    win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+    win.loadURL(
+      `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+    );
 
     // Đợi cho trang tải xong
-    win.webContents.on('did-finish-load', () => {
+    win.webContents.on("did-finish-load", () => {
       win.webContents.print({}, (success, errorType) => {
         if (!success) {
-          console.error('Error printing details:', errorType);
-          event.reply('print-details-reply', { success: false, error: errorType });
+          console.error("Error printing details:", errorType);
+          event.reply("print-details-reply", {
+            success: false,
+            error: errorType,
+          });
         } else {
-          event.reply('print-details-reply', { success: true });
+          event.reply("print-details-reply", { success: true });
         }
         win.close();
       });
     });
   } catch (error) {
-    console.error('Error printing details:', error);
-    event.reply('print-details-reply', { success: false, error: error.message });
+    console.error("Error printing details:", error);
+    event.reply("print-details-reply", {
+      success: false,
+      error: error.message,
+    });
   }
 });

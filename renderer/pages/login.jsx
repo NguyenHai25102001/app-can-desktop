@@ -6,41 +6,44 @@ import { useRouter } from 'next/router';
 
 
 const Login = () => {
+    // const [phone, setPhone] = useState('0354583367');
+    // const [password, setPassword] = useState('Admin123');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const router = useRouter();
+    function updateToken(newToken) {
+        window.ipc.send("update-token", newToken);
+    }
 
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        if (phone===undefined || password===undefined || phone==='' || password==='') {
+        if (phone === undefined || password === undefined || phone === '' || password === '') {
             Toast({ type: 'warning', message: 'Vui lòng nhập đủ thông tin' });
             return;
         }
 
         try {
             const data = {
-                user:phone,
-                password:password,
+                user: phone,
+                password: password,
             };
             const res = await request_url({
                 url: apis.login(),
                 method: 'POST',
                 data: data,
             });
-            console.log(data);
 
             if (res.status === true) {
                 sessionStorage.setItem('token_customer', res.token);
+                updateToken(res.token);
                 Toast({ type: 'success', message: 'Đăng nhập thành công' });
                 router.push('/home');
-                setPhone('')    // Reset phone
-                setPassword('')  // Reset password
 
-            }else {
+            } else {
                 Toast({ type: 'error', message: 'Đăng nhập thất bại' });
             }
-            console.log(res);
+
         } catch (e) {
             Toast({ type: 'error', message: 'Đăng nhập thất bại' });
         }

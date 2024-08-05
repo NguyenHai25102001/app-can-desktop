@@ -55,5 +55,21 @@ function formatNumber(number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
+export const dataStatus = [
+    {
+        status: '',
+        status_name: 'Tất cả'
+
+    },
+    {
+        status: 1,
+        status_name: 'Chưa hoàn thành'
+    },
+    {
+        status: 2,
+        status_name: 'Hoàn thành'
+    }
+];
+
 
 export  {Toast,formatDateTime,calculate,formatNumber}

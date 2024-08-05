@@ -16,6 +16,13 @@ const handler = {
   onSerialData: (callback) => {
     ipcRenderer.on('serial-data', (event, data) => callback(data));
   },
+
+
+  invoke(channel, ...args) {
+    return ipcRenderer.invoke(channel, ...args);
+  }
+  
+
 }
 
 contextBridge.exposeInMainWorld('ipc', handler)
